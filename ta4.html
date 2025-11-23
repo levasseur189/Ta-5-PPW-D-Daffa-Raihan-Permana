@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator Interaktif</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f1f3f5;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+    }
+    .calculator {
+        background: #fff;
+        border-radius: 10px;
+        width: 320px;
+        padding: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .display {
+        width: 100%;
+        height: 60px;
+        font-size: 28px;
+        padding: 10px;
+        text-align: right;
+        border: none;
+        background: #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+    }
+    .memory-status {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 8px;
+        height: 18px;
+    }
+    .buttons {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+    button {
+        padding: 18px;
+        font-size: 18px;
+        border: none;
+        background: #dee2e6;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background 0.2s;
+    }
+    button:hover {
+        opacity: 0.9;
+    }
+    button.operator { background: #74c0fc; }
+    button.equal { background: #40c057; color: #fff; }
+    button.clear { background: #ff6b6b; color: white; }
+    button.memory { background: #ffd43b; }
+
+    .history {
+        margin-top: 20px;
+        padding: 10px;
+        background: #fff;
+        border-radius: 10px;
+        max-height: 150px;
+        overflow-y: auto;
+        font-size: 14px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    @media (max-width: 480px) {
+        .calculator { width: 100%; }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="calculator">
+    <div class="memory-status" id="memoryStatus"></div>
+    <input type="text" id="display" class="display" disabled>
+
+    <div class="buttons">
+        <button class="memory" onclick="memoryClear()">MC</button>
+        <button class="memory" onclick="memoryRecall()">MR</button>
+        <button class="memory" onclick="memoryAdd()">M+</button>
+        <button class="memory" onclick="memorySubtract()">M-</button>
+
+        <button class="clear" onclick="clearAll()">C</button>
+        <button class="clear" onclick="clearEntry()">CE</button>
+        <button class="operator" onclick="appendValue('/')">÷</button>
+        <button class="operator" onclick="appendValue('*')">×</button>
+
+        <button onclick="appendValue('7')">7</button>
+        <button onclick="appendValue('8')">8</button>
+        <button onclick="appendValue('9')">9</button>
+        <button class="operator" onclick="appendValue('-')">-</button>
+
+        <button onclick="appendValue('4')">4</button>
+        <button onclick="appendValue('5')">5</button>
+        <button onclick="appendValue('6')">6</button>
+        <button class="operator" onclick="appendValue('+')">+</button>
+
+        <button onclick="appendValue('1')">1</button>
+        <button onclick="appendValue('2')">2</button>
+        <button onclick="appendValue('3')">3</button>
+        <button class="equal" onclick="calculate()">=</button>
+
+        <button onclick="appendValue('0')" style="grid-column: span 2;">0</button>
+        <button onclick="appendValue('.')">.</button>
+    </div>
+
+    <div class="history">
+        <strong>History (5 terakhir):</strong>
+        <ul id="historyList"></ul>
+        <button class="clear" onclick="clearHistory()" style="width: 100%; margin-top: 10px;">Clear History</button>
+    </div>
+</div>
+
+<script>
+    let display = document.getElementById("display");
+    let memoryStatus = document.getElementById("memoryStatus");
+    let historyList = document.getElementById("historyList");
+    let history = [];
+    let memory = 0;
+
+    function appendValue(value) {
+        display.value += value;
+    }
+
+    function clearAll() {
+        display.value = "";
+    }
+
+    function clearEntry() {
+        display.value = display.value.slice(0, -1);
+    }
+
+    function calculate() {
+        try {
+            let expression = display.value.trim();
+            
+            if (!expression) return;
+            
+            // Cek pembagian dengan nol
+            if (expression.includes('/0')) {
+                display.value = "Error!";
+                return;
+            }
+
+            // Gunakan Function constructor sebagai alternatif eval yang lebih aman
+            let result = Function('"use strict"; return (' + expression + ')')();
+
+            // Validasi hasil
+            if (isNaN(result) || !isFinite(result)) {
+                display.value = "Error!";
+                return;
+            }
+
+            addHistory(`${expression} = ${result}`);
+            display.value = result;
+
+        } catch {
+            display.value = "Error!";
+        }
+    }
+
+    function addHistory(entry) {
+        history.unshift(entry);
+
+        if (history.length > 5) history.pop();
+
+        historyList.innerHTML = history.map(h => `<li>${h}</li>`).join("");
+    }
+
+    /* ========== Memory Features ========== */
+    function memoryAdd() {
+        memory += Number(display.value || 0);
+        updateMemoryStatus();
+    }
+
+    function memorySubtract() {
+        memory -= Number(display.value || 0);
+        updateMemoryStatus();
+    }
+
+    function memoryRecall() {
+        display.value = memory;
+    }
+
+    function memoryClear() {
+        memory = 0;
+        updateMemoryStatus();
+    }
+
+    function updateMemoryStatus() {
+        memoryStatus.textContent = memory !== 0 ? `Memory: ${memory}` : "";
+    }
+
+    /* ========== Clear History ========== */
+    function clearHistory() {
+        history = [];
+        historyList.innerHTML = "";
+    }
+
+    /* ========== Keyboard Support ========== */
+    document.addEventListener("keydown", (event) => {
+        if (!isNaN(event.key)) appendValue(event.key);
+        if (["+", "-", "*", "/"].includes(event.key)) appendValue(event.key);
+        if (event.key === ".") appendValue(".");
+        if (event.key === "Backspace") clearEntry();
+        if (event.key === "Enter" || event.key === "=") {
+            event.preventDefault();
+            calculate();
+        }
+        if (event.key === "Delete") clearAll();
+    });
+</script>
+
+</body>
+</html>
